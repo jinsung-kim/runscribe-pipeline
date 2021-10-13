@@ -1,5 +1,11 @@
 import requests
 
+'''
+Resources:
+https://github.com/richardjy/read-runscribe
+
+'''
+
 get_token_url = 'https://api.runscribe.com/v2/authenticate'
 get_runs_url = 'https://api.runscribe.com/v2/runs'
 
