@@ -45,8 +45,12 @@ def main():
         right_serial.append(curr_location + "/" + curr_session['run_files'][0]['serial'] + ".csv")
 
     # print(res2.json()["runs"][0])
-    print(left_serial)
-    print(right_serial)
+    # print(left_serial)
+    # print(right_serial)
+
+    res3 = requests.get(left_serial[0], headers=header)
+
+    print(res3)
 
 
 if __name__ == "__main__":
