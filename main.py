@@ -2,8 +2,6 @@ import requests
 
 # MongoDB connection
 from pymongo import MongoClient
-
-# Helpers
 import csv
 
 CLUSTER = MongoClient("mongodb+srv://jinkim:SJsknyu774!@gait.my1fw.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
@@ -57,13 +55,30 @@ def fill(res, features_ind, rows, dir, id):
     return (res, features_ind)
 
 
-def add_sessions_to_database(res) -> bool:
+def add_sessions_to_database(res):
     '''
     Adds all sessions to the database that are not already in the MongoDB collection
     NOTE: We do a pre check using check_database() so all the processed results have to
     go into the database
     '''
-    return True
+    cnt = 0
+
+    for _id in res:
+        # Adding ID to the body of the object
+        res[_id]["_id"] = _id
+
+        try:
+            SESSIONS.insert_one(res[_id])
+        except Exception as e:
+            print("Something went wrong")
+            print(e)
+
+        cnt += 1
+
+    if cnt == 0:
+        return False, 0
+
+    return True, cnt
 
 
 def check_database():
@@ -179,8 +194,14 @@ def main():
 
             res, features_ind = fill(res, features_ind, rows, "right", SESSION_ID)
 
-        # Now adding the sessions to the database
-        success = add_sessions_to_database(res)
+    # Now adding the sessions to the database
+    success, added = add_sessions_to_database(res)
+
+    # Sanity check after sessions are added
+    if success:
+        print(str(added) + " new sessions added")
+    else:
+        print("No new sessions detected")
 
 
 if __name__ == "__main__":
