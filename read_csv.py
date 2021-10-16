@@ -3,19 +3,24 @@ import numpy as np
 
 class CSV:
 
-    def __init__(self, dir, file_path) -> None:
+    def __init__(self, dir, file) -> None:
+        '''
+        dif -> "Left" or "Right"
+        file -> 
+        '''
+        print(type(file))
         self.dir = dir
-        self.file_path = file_path
+        self.file = file
 
     def __str__(self) -> str:
-        return "Dir: %s\nFile Path: %s" % (self.dir, self.file_path)
+        return "Dir: %s\nFile Path: %s" % (self.dir, self.file)
 
     # Used to get the feature
     def read_file_for(self, feature, side):
         if (feature == "stride_length"):
             return self.generate_stride_length(side)
 
-        df = pd.read_csv(self.file_path)
+        df = pd.read_csv(self.file)
 
         res = df[feature].tolist()
 
@@ -41,7 +46,7 @@ class CSV:
         return crit
 
     def generate_list(self, feature):
-        df = pd.read_csv(self.file_path)
+        df = pd.read_csv(self.file)
 
         res = df[feature].tolist()
         res.sort()
@@ -50,7 +55,7 @@ class CSV:
 
     # Used to calculate the stride length using the special formula
     def generate_stride_length(self, side):
-        df = pd.read_csv(self.file_path)
+        df = pd.read_csv(self.file)
 
         a = df["stride_pace"].tolist()
         b = df["step_rate"].tolist()
