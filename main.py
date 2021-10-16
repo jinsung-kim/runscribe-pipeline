@@ -42,12 +42,17 @@ def main():
         curr_session = res2.json()["runs"][i]
         curr_location = curr_session["location"]
 
-        left_serial.append(curr_location + "/" + curr_session['run_files'][1]['serial'] + ".csv")
-        right_serial.append(curr_location + "/" + curr_session['run_files'][0]['serial'] + ".csv")
+        print(curr_location + "/mountings/" + curr_session['run_files'][1]['serial'] + ".csv")
 
-    res3 = requests.get(left_serial[0], headers=header)
+        left_serial.append(curr_location + "/mountings/" + curr_session['run_files'][1]['serial'] + ".csv")
+        right_serial.append(curr_location + "/mountings/" + curr_session['run_files'][0]['serial'] + ".csv")
 
-    print(res3)
+    # For each of the serial links -> Calculate the values
+    for i in range(len(left_serial)):
+        left_csv = requests.get(left_serial[i], headers=header).content.decode('utf-8')
+        right_csv = requests.get(right_serial[i], headers=header).content.decode('utf-8')
+
+        print(left_csv) 
 
 
 if __name__ == "__main__":
