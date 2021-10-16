@@ -1,14 +1,20 @@
 import requests
+# from datetime import date, datetime
+# from dateutil.relativedelta import relativedelta
+# import math
 
-'''
-Resources:
-https://github.com/richardjy/read-runscribe
+# MongoDB connection
+from pymongo import MongoClient
 
-'''
+# Helpers
+from read_csv import CSV
+
+cluster = MongoClient("mongodb+srv://jinkim:SJsknyu774!@gait.my1fw.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+database = cluster['gait-sessions']
+sessions = database['sessions']
 
 get_token_url = 'https://api.runscribe.com/v2/authenticate'
 get_runs_url = 'https://api.runscribe.com/v2/runs'
-get_csv_url = 'https://dashboard.runscribe.com/runs/{}/mountings/{}.csv'
 
 def main():
     body1 = {
@@ -19,8 +25,6 @@ def main():
     res = requests.post(get_token_url, data=body1)
 
     token = res.json()["token"]
-
-    # print(token)
 
     # TODO: Check if header is required to get CSV files
     header = {
@@ -36,17 +40,10 @@ def main():
 
     for i in range(sessions):
         curr_session = res2.json()["runs"][i]
-        # curr_id = curr_session["id"]
         curr_location = curr_session["location"]
 
-        # print(curr_location)
-        # print(curr_session['run_files'])
         left_serial.append(curr_location + "/" + curr_session['run_files'][1]['serial'] + ".csv")
         right_serial.append(curr_location + "/" + curr_session['run_files'][0]['serial'] + ".csv")
-
-    # print(res2.json()["runs"][0])
-    # print(left_serial)
-    # print(right_serial)
 
     res3 = requests.get(left_serial[0], headers=header)
 
