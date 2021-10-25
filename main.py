@@ -13,7 +13,7 @@ get_token_url = 'https://api.runscribe.com/v2/authenticate'
 get_runs_url = 'https://api.runscribe.com/v2/runs'
 
 
-def fill(res, features_ind, rows, dir, id):
+def fill(res, features_ind, rows, dir, id, target):
     '''
     Processes the data from the rows into a more usable form (see below)
 
@@ -26,16 +26,24 @@ def fill(res, features_ind, rows, dir, id):
     returns (res, features_ind)
     '''
     i = 0
+    # Rows to check
+    rows_to_track = set()
     for feature in rows[0]:
+        # Currently optimizing - if the feature is not required
+        # Skip it and move onto something else
+        if feature not in target:
+            i += 1
+            continue
         res[id][dir][feature] = []
         features_ind[i] = feature
+        rows_to_track.add(i)
         i += 1
 
     for i in range(1, len(rows)):
         row = rows[i]
 
         for j in range(len(row)):
-            if (row[j] == ''): # If no data -> Skip and continue
+            if (row[j] == '' or j not in rows_to_track): # If no data -> Skip and continue
                 continue
             res[id][dir][features_ind[j]].append(float(row[j]))
 
@@ -181,7 +189,7 @@ def main():
             cr = csv.reader(decoded_content.splitlines(), delimiter=',')
             rows = list(cr)
 
-            res, features_ind = fill(res, features_ind, rows, "left", SESSION_ID)
+            res, features_ind = fill(res, features_ind, rows, "left", SESSION_ID, features_to_track)
 
             sc = ScribeData("left", res[SESSION_ID], SESSION_ID)
 
@@ -201,7 +209,7 @@ def main():
             cr = csv.reader(decoded_content.splitlines(), delimiter=',')
             rows = list(cr)
 
-            res, features_ind = fill(res, features_ind, rows, "right", SESSION_ID)
+            res, _ = fill(res, features_ind, rows, "right", SESSION_ID, features_to_track)
 
             sc = ScribeData("right", res[SESSION_ID], SESSION_ID)
             
