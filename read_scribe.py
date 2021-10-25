@@ -1,28 +1,25 @@
 import pandas as pd
 import numpy as np
 
-class CSV:
+class ScribeData:
 
-    def __init__(self, dir, file) -> None:
+    def __init__(self, dir, data, id) -> None:
         '''
-        dif -> "Left" or "Right"
-        file -> 
+        dif ->  "left" or "right"
+        data -> A dictionary of data for each value
+        id ->   ID of the session
         '''
-        print(type(file))
+
         self.dir = dir
-        self.file = file
-
-    def __str__(self) -> str:
-        return "Dir: %s\nFile Path: %s" % (self.dir, self.file)
+        self.data = data
+        self.id = id
 
     # Used to get the feature
-    def read_file_for(self, feature, side):
+    def read_file_for(self, feature):
         if (feature == "stride_length"):
-            return self.generate_stride_length(side)
+            return self.generate_stride_length()
 
-        df = pd.read_csv(self.file)
-
-        res = df[feature].tolist()
+        res = self.data[self.dir][feature]
 
         res.sort() # Sorts in ascending order
 
@@ -40,25 +37,17 @@ class CSV:
             "interQuantileRange": q3 - q1,
             "min": mi,
             "max": ma,
-            "key": side
+            "key": self.dir
         }
 
         return crit
 
-    def generate_list(self, feature):
-        df = pd.read_csv(self.file)
-
-        res = df[feature].tolist()
-        res.sort()
-
-        return res
-
     # Used to calculate the stride length using the special formula
-    def generate_stride_length(self, side):
-        df = pd.read_csv(self.file)
+    def generate_stride_length(self):
+        res = self.data
 
-        a = df["stride_pace"].tolist()
-        b = df["step_rate"].tolist()
+        a = res[self.dir]["stride_pace"]
+        b = res[self.dir]["step_rate"]
 
         res = []
 
@@ -84,7 +73,7 @@ class CSV:
             "interQuantileRange": q3 - q1,
             "min": mi,
             "max": ma,
-            "key": side
+            "key": self.dir
         }
 
         return crit

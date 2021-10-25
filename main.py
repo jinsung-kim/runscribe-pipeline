@@ -1,4 +1,5 @@
 import requests
+from read_scribe import ScribeData
 
 # MongoDB connection
 from pymongo import MongoClient
@@ -137,19 +138,21 @@ def main():
     res = {
         380554: { ID is key for dictionary
             "left": {
-                "step_rate": [],
-                "step_length": [],
-                "stride_pace": []
+                "step_rate": {},
+                "step_length": {},
+                "stride_pace": {}
             },
             "right": {
-                "step_rate": [],
-                "step_length": [],
-                "stride_pace": []
+                "step_rate": {},
+                "step_length": {},
+                "stride_pace": {}
             }
         }
     }
     '''
     res = {}
+
+    features_to_track = ["stride_length", "stride_pace", "step_rate", "step_length"]
 
     # For each of the serial links -> Calculate the values
     for i in range(len(left_serial)):
@@ -180,6 +183,12 @@ def main():
 
             res, features_ind = fill(res, features_ind, rows, "left", SESSION_ID)
 
+            sc = ScribeData("left", res[SESSION_ID], SESSION_ID)
+
+            for i in range(len(features_to_track)):
+                curr = features_to_track[i]
+                res[SESSION_ID]["left"][curr] = sc.read_file_for(curr)
+
         # Moving onto the right side for that session
         features_ind = {}
         CSV_URL = right_serial[i][0]
@@ -193,6 +202,12 @@ def main():
             rows = list(cr)
 
             res, features_ind = fill(res, features_ind, rows, "right", SESSION_ID)
+
+            sc = ScribeData("right", res[SESSION_ID], SESSION_ID)
+            
+            for i in range(len(features_to_track)):
+                curr = features_to_track[i]
+                res[SESSION_ID]["right"][curr] = sc.read_file_for(curr)
 
     # Now adding the sessions to the database
     success, added = add_sessions_to_database(res)
