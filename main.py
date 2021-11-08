@@ -4,10 +4,13 @@ from read_scribe import ScribeData
 # MongoDB connection
 from pymongo import MongoClient
 import csv
+import time
+today = time.strftime("%m-%d-%Y")
 
 CLUSTER = MongoClient("mongodb+srv://jinkim:SJsknyu774!@gait.my1fw.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
 DATABASE = CLUSTER['gait-sessions']
 SESSIONS = DATABASE['sessions']
+USERS = DATABASE['users']
 
 get_token_url = 'https://api.runscribe.com/v2/authenticate'
 get_runs_url = 'https://api.runscribe.com/v2/runs'
@@ -105,126 +108,135 @@ def check_database():
 
 
 def main():
-    # Login information
-    body1 = {
-        "email": "rs6418@nyu.edu",
-        "password": "WallW25?"
-    }
 
-    # Getting authentication token
-    res = requests.post(get_token_url, data=body1)
+    for user in USERS.find():
+        body1 = {
+            "email": user["email"],
+            "password": user["password"]
+        }
 
-    token = res.json()["token"]
+        # Getting authentication token
+        res = requests.post(get_token_url, data=body1)
 
-    # This is required to get any information from the API
-    header = {
-        "X-Auth-Token": token
-    }
+        token = res.json()["token"]
 
-    res2 = requests.get(get_runs_url, headers=header)
+        # This is required to get any information from the API
+        header = {
+            "X-Auth-Token": token
+        }
 
-    # Used to store all of the URLs + IDs that we need to check
-    left_serial = []
-    right_serial = []
+        res2 = requests.get(get_runs_url, headers=header)
 
-    sessions = len(res2.json()["runs"])
+        # Used to store all of the URLs + IDs that we need to check
+        left_serial = []
+        right_serial = []
 
-    curr_sessions_tracked = check_database()
+        sessions = len(res2.json()["runs"])
 
-    for i in range(sessions):
-        curr_session = res2.json()["runs"][i]
-        curr_location = curr_session["location"]
+        # print(sessions)
 
-        # print(curr_location + "/mountings/" + curr_session['run_files'][0]['serial'] + ".csv")
+        curr_sessions_tracked = check_database()
 
-        left_serial.append((curr_location + "/mountings/" + curr_session['run_files'][1]['serial'] + ".csv", curr_session["id"]))
-        right_serial.append((curr_location + "/mountings/" + curr_session['run_files'][0]['serial'] + ".csv", curr_session["id"]))
+        for i in range(sessions):
+            curr_session = res2.json()["runs"][i]
+            curr_location = curr_session["location"]
 
-    '''
-    This is where the left and right objects will be stored by session ID
+            # print(curr_location + "/mountings/" + curr_session['run_files'][0]['serial'] + ".csv")
 
-    res = {
-        380554: { ID is key for dictionary
-            "left": {
-                "step_rate": {},
-                "step_length": {},
-                "stride_pace": {}
-            },
-            "right": {
-                "step_rate": {},
-                "step_length": {},
-                "stride_pace": {}
+            if (len(curr_session['run_files']) == 2):
+                left_serial.append((curr_location + "/mountings/" + curr_session['run_files'][1]['serial'] + ".csv", curr_session["id"]))
+                right_serial.append((curr_location + "/mountings/" + curr_session['run_files'][0]['serial'] + ".csv", curr_session["id"]))
+            else:
+                print("Sensor missing. Skipping session")
+
+
+        '''
+        This is where the left and right objects will be stored by session ID
+
+        res = {
+            380554: { ID is key for dictionary
+                "left": {
+                    "step_rate": {},
+                    "step_length": {},
+                    "stride_pace": {}
+                },
+                "right": {
+                    "step_rate": {},
+                    "step_length": {},
+                    "stride_pace": {}
+                }
             }
         }
-    }
-    '''
-    res = {}
+        '''
+        res = {}
 
-    features_to_track = ["stride_length", "stride_pace", "step_rate", "step_length"]
+        features_to_track = ["stride_length", "stride_pace", "step_rate", "step_length"]
 
-    # For each of the serial links -> Calculate the values
-    for i in range(len(left_serial)):
+        # For each of the serial links -> Calculate the values
+        for i in range(len(left_serial)):
 
-        # Left side first
-        # (url, id)
-        CSV_URL = left_serial[i][0]
-        SESSION_ID = left_serial[i][1]
+            # Left side first
+            # (url, id)
+            CSV_URL = left_serial[i][0]
+            SESSION_ID = left_serial[i][1]
 
-        # We have already accounted for this session in the database
-        if (SESSION_ID in curr_sessions_tracked):
-            continue
+            # We have already accounted for this session in the database
+            if (SESSION_ID in curr_sessions_tracked):
+                continue
 
-        res[SESSION_ID] = {
-            "left": {},
-            "right": {}
-        }
+            res[SESSION_ID] = {
+                "left": {},
+                "right": {},
+                "user": user["_id"],
+                "date": today
+            }
 
-        features_ind = {}
+            features_ind = {}
 
-        with requests.Session() as s:
-            download = s.get(CSV_URL, headers=header)
+            with requests.Session() as s:
+                download = s.get(CSV_URL, headers=header)
 
-            decoded_content = download.content.decode('utf-8')
+                decoded_content = download.content.decode('utf-8')
 
-            cr = csv.reader(decoded_content.splitlines(), delimiter=',')
-            rows = list(cr)
+                cr = csv.reader(decoded_content.splitlines(), delimiter=',')
+                rows = list(cr)
 
-            res, features_ind = fill(res, features_ind, rows, "left", SESSION_ID, features_to_track)
+                res, features_ind = fill(res, features_ind, rows, "left", SESSION_ID, features_to_track)
 
-            sc = ScribeData("left", res[SESSION_ID], SESSION_ID)
+                sc = ScribeData("left", res[SESSION_ID], SESSION_ID)
 
-            for i in range(len(features_to_track)):
-                curr = features_to_track[i]
-                res[SESSION_ID]["left"][curr] = sc.read_file_for(curr)
+                for i in range(len(features_to_track)):
+                    curr = features_to_track[i]
+                    res[SESSION_ID]["left"][curr] = sc.read_file_for(curr)
 
-        # Moving onto the right side for that session
-        features_ind = {}
-        CSV_URL = right_serial[i][0]
+            # Moving onto the right side for that session
+            features_ind = {}
+            CSV_URL = right_serial[i][0]
 
-        with requests.Session() as s:
-            download = s.get(CSV_URL, headers=header)
+            with requests.Session() as s:
+                download = s.get(CSV_URL, headers=header)
 
-            decoded_content = download.content.decode('utf-8')
+                decoded_content = download.content.decode('utf-8')
 
-            cr = csv.reader(decoded_content.splitlines(), delimiter=',')
-            rows = list(cr)
+                cr = csv.reader(decoded_content.splitlines(), delimiter=',')
+                rows = list(cr)
 
-            res, _ = fill(res, features_ind, rows, "right", SESSION_ID, features_to_track)
+                res, _ = fill(res, features_ind, rows, "right", SESSION_ID, features_to_track)
 
-            sc = ScribeData("right", res[SESSION_ID], SESSION_ID)
-            
-            for i in range(len(features_to_track)):
-                curr = features_to_track[i]
-                res[SESSION_ID]["right"][curr] = sc.read_file_for(curr)
+                sc = ScribeData("right", res[SESSION_ID], SESSION_ID)
+                
+                for i in range(len(features_to_track)):
+                    curr = features_to_track[i]
+                    res[SESSION_ID]["right"][curr] = sc.read_file_for(curr)
 
-    # Now adding the sessions to the database
-    success, added = add_sessions_to_database(res)
+        # Now adding the sessions for this user to the database
+        success, added = add_sessions_to_database(res)
 
-    # Sanity check after sessions are added
-    if success:
-        print(str(added) + " new sessions added")
-    else:
-        print("No new sessions detected")
+        # Sanity check after sessions are added
+        if success:
+            print(str(added) + " new sessions added for user " + user["email"])
+        else:
+            print("No new sessions detected for user " + user["email"])
 
 
 if __name__ == "__main__":
