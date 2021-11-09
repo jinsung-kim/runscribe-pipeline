@@ -1,5 +1,4 @@
 requests==2.25.0
-bson==0.5.10
 click==7.1.2
 gunicorn==20.1.0
 itsdangerous==1.1.0

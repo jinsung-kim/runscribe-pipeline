@@ -141,8 +141,6 @@ def main():
             curr_session = res2.json()["runs"][i]
             curr_location = curr_session["location"]
 
-            # print(curr_location + "/mountings/" + curr_session['run_files'][0]['serial'] + ".csv")
-
             if (len(curr_session['run_files']) == 2):
                 left_serial.append((curr_location + "/mountings/" + curr_session['run_files'][1]['serial'] + ".csv", curr_session["id"]))
                 right_serial.append((curr_location + "/mountings/" + curr_session['run_files'][0]['serial'] + ".csv", curr_session["id"]))
