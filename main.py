@@ -17,17 +17,6 @@ get_runs_url = 'https://api.runscribe.com/v2/runs'
 
 
 def fill(res, features_ind, rows, dir, id, target):
-    '''
-    Processes the data from the rows into a more usable form (see below)
-
-    res -> The data structure we want to add features to
-    features_ind -> The dictionary that converts the respective indice with its feature
-    row -> Data to process
-    dir -> The direction of the 
-    id -> ID of the session
-
-    returns (res, features_ind)
-    '''
     i = 0
     # Rows to check
     rows_to_track = set()
@@ -67,7 +56,7 @@ def fill(res, features_ind, rows, dir, id, target):
     return (res, features_ind)
 
 
-def add_sessions_to_database(res):
+def add_sessions_to_database(res, user):
     '''
     Adds all sessions to the database that are not already in the MongoDB collection
     NOTE: We do a pre check using check_database() so all the processed results have to
@@ -89,6 +78,15 @@ def add_sessions_to_database(res):
 
     if cnt == 0:
         return False, 0
+
+    # Update user last session
+    try:
+        update_last_session = {"$set": { "lastSession": today }}
+        USERS.update_one(user, update_last_session)
+        pass
+    except Exception as e:
+        print("User not found or var not set")
+        print(e)
 
     return True, cnt
 
@@ -133,8 +131,6 @@ def main():
 
         sessions = len(res2.json()["runs"])
 
-        # print(sessions)
-
         curr_sessions_tracked = check_database()
 
         for i in range(sessions):
@@ -146,7 +142,6 @@ def main():
                 right_serial.append((curr_location + "/mountings/" + curr_session['run_files'][0]['serial'] + ".csv", curr_session["id"]))
             else:
                 print("Sensor missing. Skipping session")
-
 
         '''
         This is where the left and right objects will be stored by session ID
