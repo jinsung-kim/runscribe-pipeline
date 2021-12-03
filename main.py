@@ -170,8 +170,11 @@ def main():
 
             # Left side first
             # (url, id)
-            CSV_URL = left_serial[i][0]
-            SESSION_ID = left_serial[i][1]
+            try:
+                CSV_URL = left_serial[i][0]
+                SESSION_ID = left_serial[i][1]
+            except Exception as e:
+                continue
 
             # We have already accounted for this session in the database
             if (SESSION_ID in curr_sessions_tracked):
@@ -204,7 +207,10 @@ def main():
 
             # Moving onto the right side for that session
             features_ind = {}
-            CSV_URL = right_serial[i][0]
+            try:
+                CSV_URL = right_serial[i][0]
+            except Exception as e:
+                continue
 
             with requests.Session() as s:
                 download = s.get(CSV_URL, headers=header)
@@ -223,7 +229,7 @@ def main():
                     res[SESSION_ID]["right"][curr] = sc.read_file_for(curr)
 
         # Now adding the sessions for this user to the database
-        success, added = add_sessions_to_database(res)
+        success, added = add_sessions_to_database(res, user)
 
         # Sanity check after sessions are added
         if success:
